@@ -5,7 +5,8 @@ const state = {
     currentThemeIndex: 0,
     respawnPos: new THREE.Vector3(0, 5, 0),
     isJumping: false,
-    lastPlatformId: -1
+    lastPlatformId: -1,
+    lastCheckpointPlatformId: 0
 };
 
 // Themes
@@ -312,6 +313,8 @@ function updatePhysics(dt) {
                             // Change Theme
                             state.currentThemeIndex = (state.currentThemeIndex + 1) % themes.length;
                             updateTheme();
+                            
+                            state.lastCheckpointPlatformId = p.platformId;
                         }
                     }
                 }
@@ -370,7 +373,7 @@ function managePlatforms() {
     // Remove old platforms far behind
     for (let i = 0; i < platforms.length; i++) {
         const p = platforms[i];
-        if (p.isCheckpoint) continue;
+        if (p.platformId >= state.lastCheckpointPlatformId) continue;
         if (player.position.z - p.position.z < -50 && platforms.length > 10) {
             scene.remove(p);
             p.geometry.dispose();
