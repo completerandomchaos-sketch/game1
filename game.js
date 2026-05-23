@@ -153,7 +153,13 @@ function createPlatform(x, y, z, width, depth) {
 }
 
 // Initial Platforms
-createPlatform(0, 0, 0, 10, 20); // Start platform
+const startPlatform = createPlatform(0, 0, 0, 10, 20); // Start platform
+startPlatform.isCheckpoint = true;
+startPlatform.material.color.setHex(0x111111);
+startPlatform.material.emissive.setHex(0xd4af37);
+startPlatform.material.roughness = 0.2;
+startPlatform.material.metalness = 1.0;
+
 for(let i=0; i<5; i++) {
     generateNextPlatform();
 }
@@ -204,8 +210,10 @@ function updateTheme() {
     playerMaterial.color.setHex(theme.playerColor);
     
     platforms.forEach(p => {
-        p.material.color.setHex(theme.platformColor);
-        p.material.emissive.setHex(theme.platformEmissive);
+        if (!p.isCheckpoint) {
+            p.material.color.setHex(theme.platformColor);
+            p.material.emissive.setHex(theme.platformEmissive);
+        }
     });
 
     uiTheme.innerText = `Theme: ${theme.name}`;
@@ -284,6 +292,23 @@ function updatePhysics(dt) {
                             state.respawnPos.y += 5;
                             showNotification("Checkpoint Reached!");
                             
+                            platforms.forEach(plat => {
+                                if (plat.isCheckpoint) {
+                                    plat.isCheckpoint = false;
+                                    const theme = themes[state.currentThemeIndex];
+                                    plat.material.color.setHex(theme.platformColor);
+                                    plat.material.emissive.setHex(theme.platformEmissive);
+                                    plat.material.roughness = 0.7;
+                                    plat.material.metalness = 0.2;
+                                }
+                            });
+                            
+                            p.isCheckpoint = true;
+                            p.material.color.setHex(0x111111);
+                            p.material.emissive.setHex(0xd4af37);
+                            p.material.roughness = 0.2;
+                            p.material.metalness = 1.0;
+                            
                             // Change Theme
                             state.currentThemeIndex = (state.currentThemeIndex + 1) % themes.length;
                             updateTheme();
@@ -343,13 +368,15 @@ function managePlatforms() {
     }
 
     // Remove old platforms far behind
-    if (platforms.length > 10) {
-        const firstPlatform = platforms[0];
-        if (player.position.z - firstPlatform.position.z < -50) {
-            scene.remove(firstPlatform);
-            firstPlatform.geometry.dispose();
-            firstPlatform.material.dispose();
-            platforms.shift();
+    for (let i = 0; i < platforms.length; i++) {
+        const p = platforms[i];
+        if (p.isCheckpoint) continue;
+        if (player.position.z - p.position.z < -50 && platforms.length > 10) {
+            scene.remove(p);
+            p.geometry.dispose();
+            p.material.dispose();
+            platforms.splice(i, 1);
+            i--;
         }
     }
 }
